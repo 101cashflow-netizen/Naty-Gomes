@@ -1,89 +1,129 @@
+/**
+ * Naty Gomes Personal Trainer - Scripts Interativos
+ */
 (function () {
-  var header = document.getElementById("header");
-  var hamburger = document.getElementById("hamburger");
-  var nav = document.getElementById("nav");
-  var form = document.getElementById("contato-form");
+  'use strict';
+
   var WA_NUMBER = "5513997476920";
-  var DEFAULT_MSG = "Olá, Naty! Conheci seu trabalho pelo site e gostaria de saber mais sobre os treinos.";
+  var header = document.getElementById("site-header");
+  var menuBtn = document.getElementById("menu-btn");
+  var menuIcon = document.getElementById("menu-icon");
+  var mobileNav = document.getElementById("mobile-nav");
+  var contactForm = document.getElementById("contact-form");
 
-  function waUrl(text) {
-    return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(text || DEFAULT_MSG);
-  }
-
+  // 1. Sombra e elevação dinâmica no Header ao rolar
   function onScroll() {
     if (!header) return;
-    header.classList.toggle("is-scrolled", window.scrollY > 12);
+    if (window.scrollY > 20) {
+      header.classList.add("shadow-[0_4px_20px_rgba(27,59,43,0.08)]", "bg-surface/95");
+      header.classList.remove("shadow-[0_1px_8px_rgba(27,59,43,0.05)]", "bg-surface/90");
+    } else {
+      header.classList.remove("shadow-[0_4px_20px_rgba(27,59,43,0.08)]", "bg-surface/95");
+      header.classList.add("shadow-[0_1px_8px_rgba(27,59,43,0.05)]", "bg-surface/90");
+    }
   }
-
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
-  if (hamburger && nav) {
-    hamburger.addEventListener("click", function () {
-      var open = document.body.classList.toggle("nav-open");
-      hamburger.setAttribute("aria-expanded", open ? "true" : "false");
-      hamburger.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+  // 2. Menu Hambúrguer Mobile
+  if (menuBtn && mobileNav) {
+    function toggleMobileMenu(open) {
+      var isOpen = typeof open === 'boolean' ? open : mobileNav.classList.contains("hidden");
+      if (isOpen) {
+        mobileNav.classList.remove("hidden");
+        menuBtn.setAttribute("aria-expanded", "true");
+        menuBtn.setAttribute("aria-label", "Fechar menu de navegação");
+        if (menuIcon) menuIcon.textContent = "close";
+      } else {
+        mobileNav.classList.add("hidden");
+        menuBtn.setAttribute("aria-expanded", "false");
+        menuBtn.setAttribute("aria-label", "Abrir menu de navegação");
+        if (menuIcon) menuIcon.textContent = "menu";
+      }
+    }
+
+    menuBtn.addEventListener("click", function () {
+      toggleMobileMenu();
     });
 
-    nav.querySelectorAll("a").forEach(function (link) {
+    // Fechar ao clicar em um link interno
+    document.querySelectorAll(".mobile-link").forEach(function (link) {
       link.addEventListener("click", function () {
-        document.body.classList.remove("nav-open");
-        hamburger.setAttribute("aria-expanded", "false");
-        hamburger.setAttribute("aria-label", "Abrir menu");
+        toggleMobileMenu(false);
       });
+    });
+
+    // Fechar com a tecla Escape
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !mobileNav.classList.contains("hidden")) {
+        toggleMobileMenu(false);
+        menuBtn.focus();
+      }
     });
   }
 
-  document.querySelectorAll(".faq__item").forEach(function (item) {
-    item.addEventListener("toggle", function () {
-      if (!item.open) return;
-      document.querySelectorAll(".faq__item").forEach(function (other) {
-        if (other !== item) other.open = false;
+  // 3. FAQ Accordion com acessibilidade ARIA
+  document.querySelectorAll(".faq-toggle").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var isExpanded = button.getAttribute("aria-expanded") === "true";
+      var content = button.nextElementSibling;
+      var icon = button.querySelector(".faq-icon");
+
+      // Fechar outros itens (comportamento de acordeão harmonioso)
+      document.querySelectorAll(".faq-toggle").forEach(function (otherBtn) {
+        if (otherBtn !== button) {
+          otherBtn.setAttribute("aria-expanded", "false");
+          if (otherBtn.nextElementSibling) {
+            otherBtn.nextElementSibling.classList.add("hidden");
+            otherBtn.nextElementSibling.classList.remove("block");
+          }
+          var otherIcon = otherBtn.querySelector(".faq-icon");
+          if (otherIcon) otherIcon.classList.remove("rotate-180");
+        }
       });
+
+      // Alternar o item clicado
+      button.setAttribute("aria-expanded", !isExpanded);
+      if (isExpanded) {
+        content.classList.add("hidden");
+        content.classList.remove("block");
+        if (icon) icon.classList.remove("rotate-180");
+      } else {
+        content.classList.remove("hidden");
+        content.classList.add("block");
+        if (icon) icon.classList.add("rotate-180");
+      }
     });
   });
 
-  if (form) {
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
-      var data = new FormData(form);
+  // 4. Formulário de Triagem para WhatsApp
+  if (contactForm) {
+    contactForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      var data = new FormData(contactForm);
       var nome = String(data.get("nome") || "").trim();
       var whatsapp = String(data.get("whatsapp") || "").trim();
       var objetivo = String(data.get("objetivo") || "").trim();
       var modalidade = String(data.get("modalidade") || "").trim();
       var mensagem = String(data.get("mensagem") || "").trim();
 
-      if (!nome || !whatsapp || !objetivo || !modalidade || !mensagem) {
-        form.reportValidity();
+      if (!nome || !whatsapp) {
+        contactForm.reportValidity();
         return;
       }
 
-      var text =
-        "Olá, Naty! Conheci seu trabalho pelo site e gostaria de saber mais sobre os treinos.\n\n" +
-        "Nome: " + nome + "\n" +
-        "WhatsApp: " + whatsapp + "\n" +
-        "Objetivo: " + objetivo + "\n" +
-        "Modalidade: " + modalidade + "\n" +
-        "Mensagem: " + mensagem;
+      var text = "Olá, Naty! Vim pelo site e gostaria de agendar uma conversa sobre os treinos.\n\n";
+      text += "*Nome:* " + nome + "\n";
+      text += "*WhatsApp:* " + whatsapp + "\n";
+      text += "*Objetivo:* " + objetivo + "\n";
+      text += "*Modalidade:* " + modalidade + "\n";
+      if (mensagem) {
+        text += "*Mensagem/Observações:* " + mensagem + "\n";
+      }
 
-      window.open(waUrl(text), "_blank", "noopener");
+      var waUrl = "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(text);
+      window.open(waUrl, "_blank", "noopener,noreferrer");
     });
   }
-
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-in");
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-  );
-
-  document.querySelectorAll(".reveal").forEach(function (el, index) {
-    el.style.animationDelay = (index % 6) * 70 + "ms";
-    observer.observe(el);
-  });
 })();
